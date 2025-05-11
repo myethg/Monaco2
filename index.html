@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" data-name="vs/editor/editor.main" href="./min/vs/editor/editor.main.css" />
+    <style>
+        html, body { height: 100%; margin: 0; }
+        #container { height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <script src="./min/vs/loader.js"></script>
+    <script>
+        require.config({ paths: { 'vs': './min/vs' } });
+    </script>
+    <script src="./min/vs/editor/editor.main.nls.js"></script>
+    <script src="./min/vs/editor/editor.main.js"></script>
+    <script>
+        const globals = [
+            "_G", "_VERSION", "assert", "collectgarbage", "error", "getfenv", "getmetatable", "ipairs", "load",
+            "loadstring", "module", "next", "pairs", "pcall", "print", "rawequal", "rawget", "rawset", "require", "select",
+            "setfenv", "setmetatable", "tonumber", "tostring", "type", "unpack", "xpcall", "coroutine", "debug", "math",
+            "os", "string", "table", "cache.invalidate", "cache.iscached", "cache.replace", "cloneref", "compareinstances",
+            "checkcaller", "clonefunction", "getcallingscript", "getscriptclosure", "iscclosure", "islclosure",
+            "isexecutorclosure", "checkclosure", "isourclosure", "isnewcclosure", "loadstring", "newcclosure",
+            "hookfunction", "hookmetamethod", "replaceclosure", "hookfunc", "crypt.base64encode", "crypt.base64decode",
+            "crypt.generatebytes", "crypt.generatekey", "crypt.hash", "debug.getconstant", "debug.getconstants",
+            "debug.getinfo", "debug.getproto", "debug.getprotos", "debug.getstack", "debug.getupvalue",
+            "debug.getupvalues", "debug.setconstant", "debug.setstack", "debug.setupvalue", "readfile", "listfiles",
+            "writefile", "makefolder", "appendfile", "isfile", "isfolder", "delfolder", "delfile", "loadfile", "dofile",
+            "getcustomasset", "isrbxactive", "isgameactive", "iswindowactive", "mouse1click", "mouse1press",
+            "mouse1release", "mouse2click", "mouse2press", "mouse2release", "mousemoveabs", "mousemoverel",
+            "mousescroll", "iskeydown", "keypress", "keyrelease", "getcallbackvalue", "gethui", "getinstances",
+            "getnilinstances", "getscripts", "getrunningscripts", "getloadedmodules", "isscriptable", "setscriptable",
+            "sethiddenproperty", "gethiddenproperty", "fireclickdetector", "firetouchinterest", "fireproximityprompt",
+            "firesignal", "getrawmetatable", "getnamecallmethod", "isreadonly", "setrawmetatable", "setreadonly",
+            "makereadonly", "makewriteable", "identifyexecutor", "getexecutorname", "lz4compress", "lz4decompress",
+            "messagebox", "request", "httpget", "httprequest", "getobjects", "http_request", "setclipboard",
+            "toclipboard", "setrbxclipboard", "setfpscap", "getfpscap", "checkparallel", "isparallel", "info", "getgc",
+            "getgenv", "getreg", "getsenv", "getrenv", "getscriptbytecode", "getscripthash", "getfunctionhash",
+            "getfunctionbytecode", "dumpstring", "getthreadidentity", "getthreadcontext", "getidentity",
+            "setthreadidentity", "setthreadcontext", "setidentity", "decompile", "consolecreate", "consoleprint",
+            "consoleclear", "consolesettitle", "consolename", "consoledestroy", "consoleinput", "consoletopmost",
+            "consoleinfo", "consolewarn", "consoleerr", "consolehidden", "consolehide", "consoleshow", "consoletoggle",
+            "WebSocket.connect", "game", "game:HttpGet", "killrbx", "getconnections"
+        ];
+
+        const keywords = [
+            "and", "break", "do", "else", "elseif", "end", "for",
+            "function", "if", "in", "local", "nil", "not", "or", "repeat",
+            "return", "then", "until", "while", "true", "false"
+        ];
+
+        monaco.languages.register({ id: 'lua' });
+
+        monaco.languages.setMonarchTokensProvider('lua', {
+            keywords: keywords,
+            globals: globals,
+            tokenizer: {
+                root: [
+                    // Function calls: identifier followed by (
+                    [/\b([a-zA-Z_]\w*)\s*(?=\()/, {
+                        cases: {
+                            '@globals': 'function.call',
+                            '@keywords': 'keyword',
+                            '@default': 'identifier'
+                        }
+                    }],
+                    // Identifiers
+                    [/[a-zA-Z_]\w*/, {
+                        cases: {
+                            '@keywords': 'keyword',
+                            '@globals': 'function.call',
+                            '@default': 'identifier'
+                        }
+                    }],
+                    [/\b(true|false)\b/, "bool"],
+                    [/[0-9]+\.[0-9]*([eE][\-+]?[0-9]+)?/, "number"],
+                    [/[0-9]+[eE][\-+]?[0-9]+/, "number"],
+                    [/0[xX][0-9a-fA-F]+/, "number"],
+                    [/[0-9]+/, "number"],
+                    [/--.*/, 'comment'],
+                    [/"/, { token: 'string.quote', next: '@string.double' }],
+                    [/'/, { token: 'string.quote', next: '@string.single' }],
+                ],
+                'string.double': [
+                    [/[^\\"]+/, 'string'],
+                    [/\\./, 'string.escape'],
+                    [/"/, { token: 'string.quote', next: '@pop' }]
+                ],
+                'string.single': [
+                    [/[^\\']+/, 'string'],
+                    [/\\./, 'string.escape'],
+                    [/'/, { token: 'string.quote', next: '@pop' }]
+                ]
+            }
+        });
+
+        monaco.editor.defineTheme('myTheme', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [
+                { token: 'keyword', foreground: '569dd6' },
+                { token: 'function.call', foreground: 'dcdcaa' },
+                { token: 'number', foreground: 'b5cea8' },
+                { token: 'bool', foreground: '569dd6' }
+            ],
+            colors: {}
+        });
+
+        monaco.languages.registerCompletionItemProvider('lua', {
+            provideCompletionItems: () => {
+                const suggestions = [
+                    ...keywords.map(k => ({
+                        label: k,
+                        kind: monaco.languages.CompletionItemKind.Keyword,
+                        insertText: k,
+                        sortText: '2'
+                    })),
+                    ...globals.map(g => ({
+                        label: g,
+                        kind: monaco.languages.CompletionItemKind.Function,
+                        insertText: g,
+                        sortText: '1'
+                    }))
+                ];
+                return { suggestions };
+            }
+        });
+
+        const editor = monaco.editor.create(document.getElementById('container'), {
+            value: '-- Made by Mye v.0.0.3',
+            language: 'lua',
+            theme: 'myTheme',
+            automaticLayout: true,
+            wordBasedSuggestions: true
+        });
+
+        function getvalue() { return editor.getValue(); }
+        function resetvalue() { editor.setValue(""); }
+        function setvalue(val) { editor.setValue(val); }
+    </script>
+</body>
+</html>
